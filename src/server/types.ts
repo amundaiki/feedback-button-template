@@ -13,6 +13,13 @@ export type FeedbackContext = {
   userAgent?: string
 }
 
+export type FeedbackCreatedIssue = {
+  id?: string
+  key?: string
+  url?: string
+  provider?: string
+}
+
 export type FeedbackIssue = {
   type: FeedbackType
   title: string
@@ -20,6 +27,7 @@ export type FeedbackIssue = {
   descriptionHtml: string
   reporter: FeedbackUser
   context: FeedbackContext
+  ticket?: FeedbackCreatedIssue
 }
 
 export type FeedbackAuthAdapter = (request: Request) => Promise<FeedbackUser | null>
@@ -37,7 +45,7 @@ export type FeedbackRateLimitAdapter = (
 export type FeedbackIssueSink = (
   issue: FeedbackIssue,
   request: Request,
-) => Promise<{ id?: string } | void>
+) => Promise<FeedbackCreatedIssue | void>
 
 export type FeedbackNotifier = (issue: FeedbackIssue, request: Request) => Promise<void>
 

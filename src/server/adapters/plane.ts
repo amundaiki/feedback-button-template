@@ -4,6 +4,7 @@ import { FeedbackSinkError } from '../types'
 
 export type PlaneAdapterConfig = {
   baseUrl: string
+  webBaseUrl?: string
   apiKey: string
   workspaceSlug: string
   projectId: string
@@ -32,6 +33,10 @@ export function planeConfigFromEnv(env: Env = process.env): PlaneAdapterConfig |
 
   return {
     baseUrl: (env.PLANE_BASE_URL || DEFAULT_PLANE_BASE_URL).replace(/\/+$/, ''),
+    webBaseUrl: (env.PLANE_WEB_BASE_URL || env.PLANE_BASE_URL || DEFAULT_PLANE_BASE_URL).replace(
+      /\/+$/,
+      '',
+    ),
     apiKey,
     workspaceSlug: env.PLANE_WORKSPACE_SLUG || 'aiki',
     projectId,
@@ -117,6 +122,11 @@ function labelNameForType(config: PlaneAdapterConfig, type: FeedbackType): strin
   return config.typeLabels?.[type] ?? type
 }
 
+function planeIssueUrl(config: PlaneAdapterConfig, issueId: string): string {
+  const webBaseUrl = (config.webBaseUrl || config.baseUrl).replace(/\/+$/, '')
+  return `${webBaseUrl}/${config.workspaceSlug}/projects/${config.projectId}/issues/${issueId}`
+}
+
 export function createPlaneIssueSink(config: PlaneAdapterConfig | null): FeedbackIssueSink {
   let idsPromise: Promise<PlaneIds> | null = null
 
@@ -163,6 +173,10 @@ export function createPlaneIssueSink(config: PlaneAdapterConfig | null): Feedbac
       },
     })
 
-    return { id: created.id }
+    return {
+      id: created.id,
+      url: planeIssueUrl(config, created.id),
+      provider: 'Plane',
+    }
   }
 }

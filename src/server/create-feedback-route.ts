@@ -267,23 +267,9 @@ export function createFeedbackPost(options: FeedbackRouteOptions): FeedbackRoute
     })
     const logger = options.logger ?? console
 
-    const notificationsOk = await runNotifications(
-      issue,
-      request,
-      options.notifications ?? [],
-      logger,
-    )
-    if (!notificationsOk) {
-      return jsonResponse(
-        {
-          feil: 'Kunne ikke sende tilbakemeldingen akkurat nå. Teksten din er beholdt, prøv igjen om litt.',
-        },
-        502,
-      )
-    }
-
     try {
-      await options.issueSink(issue, request)
+      const createdIssue = await options.issueSink(issue, request)
+      if (createdIssue !== undefined) issue.ticket = createdIssue
     } catch (error) {
       logger.error('[feedback] kunne ikke opprette sak', {
         status: providerStatus(error) ?? 'ukjent',
@@ -295,6 +281,21 @@ export function createFeedbackPost(options: FeedbackRouteOptions): FeedbackRoute
       return jsonResponse(
         {
           feil: 'Kunne ikke sende tilbakemeldingen akkurat nå. Teksten din er beholdt, prøv igjen om litt.',
+        },
+        502,
+      )
+    }
+
+    const notificationsOk = await runNotifications(
+      issue,
+      request,
+      options.notifications ?? [],
+      logger,
+    )
+    if (!notificationsOk) {
+      return jsonResponse(
+        {
+          feil: 'Tilbakemeldingen ble registrert, men varsling feilet. Vi følger den opp.',
         },
         502,
       )

@@ -57,6 +57,7 @@ describe('planeConfigFromEnv', () => {
       projectId: 'project-1',
       workspaceSlug: 'workspace',
       baseUrl: 'https://plane.example.com',
+      webBaseUrl: 'https://plane.example.com',
     })
   })
 })
@@ -82,7 +83,11 @@ describe('createPlaneIssueSink', () => {
       projectId: 'project-1',
     })
 
-    await expect(sink(issue, new Request('https://example.com'))).resolves.toEqual({ id: 'issue-1' })
+    await expect(sink(issue, new Request('https://example.com'))).resolves.toEqual({
+      id: 'issue-1',
+      url: 'https://plane.example.com/workspace/projects/project-1/issues/issue-1',
+      provider: 'Plane',
+    })
     const issueCall = fetchMock.mock.calls.find(([url]) => String(url).includes('/issues/'))
     expect(issueCall).toBeDefined()
     const body = JSON.parse(String(issueCall?.[1]?.body)) as {

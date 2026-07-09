@@ -3,8 +3,10 @@ import { createServer } from 'node:http'
 import {
   createFeedbackPost,
   createInMemoryRateLimit,
+  createPlaneIssueSink,
   createSlackWebhookNotifierFromEnv,
   feedbackMethodNotAllowed,
+  planeConfigFromEnv,
   type FeedbackAuthAdapter,
   type FeedbackIssueSink,
   type FeedbackNotificationRule,
@@ -26,7 +28,14 @@ const auth: FeedbackAuthAdapter = async (request) => {
   return { id: 'local-dev', email: 'local-dev@example.com' }
 }
 
-const issueSink: FeedbackIssueSink = async () => ({ id: 'local-dev-ticket' })
+const planeConfig = planeConfigFromEnv(env)
+const issueSink: FeedbackIssueSink = planeConfig
+  ? createPlaneIssueSink(planeConfig)
+  : async () => ({
+      id: 'local-dev-ticket',
+      url: 'https://prosjekt.example.com/workspace/projects/project/issues/local-dev-ticket',
+      provider: 'Plane',
+    })
 
 const notifications = [
   createSlackWebhookNotifierFromEnv({
@@ -78,7 +87,9 @@ const server = createServer(async (nodeRequest, nodeResponse) => {
 server.listen(port, host, () => {
   const slackStatus = notifications.length > 0 ? 'configured' : 'missing'
   const authStatus = devToken ? 'configured' : 'missing'
+  const planeStatus = planeConfig ? 'configured' : 'local fallback'
   console.log(`Feedback dev server listening on http://${host}:${port}`)
   console.log(`Auth token: ${authStatus}`)
   console.log(`Slack webhook: ${slackStatus}`)
+  console.log(`Plane issue sink: ${planeStatus}`)
 })

@@ -24,7 +24,11 @@ const validBody = {
 }
 
 function route(overrides: Partial<Parameters<typeof createFeedbackPost>[0]> = {}) {
-  const issueSink = vi.fn(async (_issue: FeedbackIssue, _request: Request) => ({ id: 'issue-1' }))
+  const issueSink = vi.fn(async (_issue: FeedbackIssue, _request: Request) => ({
+    id: 'issue-1',
+    url: 'https://plane.example.com/workspace/projects/project/issues/issue-1',
+    provider: 'Plane',
+  }))
   const logger = { error: vi.fn() }
   const handler = createFeedbackPost({
     auth: async () => ({ id: 'user-1', email: 'tester@example.com' }),
@@ -100,13 +104,19 @@ describe('createFeedbackPost', () => {
     expect(issueSink).not.toHaveBeenCalled()
   })
 
-  it('kjoerer matchende varsler foer issue sink', async () => {
+  it('oppretter issue foer matchende varsler slik at varsler faar ticket-lenke', async () => {
     const events: string[] = []
-    const notify = vi.fn(async () => {
+    const notify = vi.fn(async (issue: FeedbackIssue) => {
       events.push('notify')
+      expect(issue.ticket?.url).toBe('https://plane.example.com/workspace/projects/project/issues/issue-1')
     })
     const issueSink = vi.fn(async (_issue: FeedbackIssue, _request: Request) => {
       events.push('issue')
+      return {
+        id: 'issue-1',
+        url: 'https://plane.example.com/workspace/projects/project/issues/issue-1',
+        provider: 'Plane',
+      }
     })
     const { handler } = route({
       notifications: [{ name: 'slack-bug', types: ['bug'], notify }],
@@ -117,7 +127,7 @@ describe('createFeedbackPost', () => {
 
     expect(response.status).toBe(201)
     expect(notify).toHaveBeenCalledTimes(1)
-    expect(events).toEqual(['notify', 'issue'])
+    expect(events).toEqual(['issue', 'notify'])
   })
 
   it('hopper over varsler som ikke matcher type', async () => {
@@ -155,7 +165,7 @@ describe('createFeedbackPost', () => {
     expect(JSON.stringify(logger.error.mock.calls)).not.toContain('webhook secret response')
   })
 
-  it('stopper foer issue sink naar required varsling feiler', async () => {
+  it('beholder opprettet issue naar required varsling feiler', async () => {
     const { handler, issueSink } = route({
       notifications: [
         {
@@ -172,7 +182,7 @@ describe('createFeedbackPost', () => {
     const responseText = await response.text()
 
     expect(response.status).toBe(502)
-    expect(issueSink).not.toHaveBeenCalled()
+    expect(issueSink).toHaveBeenCalledTimes(1)
     expect(responseText).not.toContain('smtp token')
   })
 

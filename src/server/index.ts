@@ -3,6 +3,7 @@ export {
   FeedbackSinkError,
   type FeedbackAuthAdapter,
   type FeedbackContext,
+  type FeedbackCreatedIssue,
   type FeedbackIssue,
   type FeedbackIssueSink,
   type FeedbackNotificationRule,

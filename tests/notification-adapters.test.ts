@@ -19,6 +19,11 @@ const issue: FeedbackIssue = {
     page: '/admin/lager',
     pageUrl: 'https://admin.example.com/admin/lager',
   },
+  ticket: {
+    id: 'issue-1',
+    url: 'https://plane.example.com/workspace/projects/project/issues/issue-1',
+    provider: 'Plane',
+  },
 }
 
 describe('Slack notifier', () => {
@@ -54,12 +59,16 @@ describe('Slack notifier', () => {
       blocks: Array<{ type: string; text?: { text: string }; elements?: Array<{ text?: string }> }>
     }
     expect(body.text).toContain(issue.title)
+    expect(issue.ticket?.url).toBeDefined()
+    expect(body.text).toContain(issue.ticket!.url!)
     expect(issue.context.pageUrl).toBeDefined()
     expect(body.text).toContain(issue.context.pageUrl!)
     expect(body.text).not.toContain('example.test/slack-webhook')
     expect(body.blocks.map((block) => block.type)).toEqual(['header', 'section', 'context', 'actions'])
     expect(body.blocks[0]?.text?.text).toContain('Ny feil')
     expect(JSON.stringify(body.blocks)).toContain(issue.title)
+    expect(JSON.stringify(body.blocks)).toContain('Åpne ticket')
+    expect(JSON.stringify(body.blocks)).toContain(issue.ticket!.url!)
     expect(JSON.stringify(body.blocks)).not.toContain('example.test/slack-webhook')
   })
 })

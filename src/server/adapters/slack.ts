@@ -41,6 +41,7 @@ export type SlackWebhookNotifierFromEnvOptions = Omit<SlackWebhookNotifierOption
 function slackText(issue: FeedbackIssue): string {
   const lines = [
     `Ny ${FEEDBACK_TYPE_LABELS[issue.type].toLowerCase()} i ${issue.context.appName}: ${issue.title}`,
+    issue.ticket?.url ? `Ticket: ${issue.ticket.url}` : null,
     issue.context.pageUrl ? `Side: ${issue.context.pageUrl}` : null,
     issue.reporter.email ? `Rapportert av: ${issue.reporter.email}` : null,
   ].filter((line): line is string => line !== null)
@@ -80,6 +81,7 @@ function slackBlocks(issue: FeedbackIssue): SlackBlock[] {
 
   const context = [
     `App: ${issue.context.appName}`,
+    issue.ticket?.provider ? `Ticket: ${issue.ticket.provider}` : null,
     issue.context.page ? `Side: ${issue.context.page}` : null,
     issue.reporter.email ? `Rapportert av: ${issue.reporter.email}` : null,
   ]
@@ -90,16 +92,32 @@ function slackBlocks(issue: FeedbackIssue): SlackBlock[] {
     blocks.push({ type: 'context', elements: context })
   }
 
+  const actionElements: Array<{
+    type: 'button'
+    text: { type: 'plain_text'; text: string; emoji?: boolean }
+    url: string
+  }> = []
+
+  if (issue.ticket?.url) {
+    actionElements.push({
+      type: 'button',
+      text: { type: 'plain_text', text: 'Åpne ticket', emoji: false },
+      url: issue.ticket.url,
+    })
+  }
+
   if (issue.context.pageUrl) {
+    actionElements.push({
+      type: 'button',
+      text: { type: 'plain_text', text: 'Åpne side', emoji: false },
+      url: issue.context.pageUrl,
+    })
+  }
+
+  if (actionElements.length > 0) {
     blocks.push({
       type: 'actions',
-      elements: [
-        {
-          type: 'button',
-          text: { type: 'plain_text', text: 'Åpne side', emoji: false },
-          url: issue.context.pageUrl,
-        },
-      ],
+      elements: actionElements,
     })
   }
 

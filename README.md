@@ -11,7 +11,7 @@ Projects own the styling, authentication, notifications, and issue-tracker wirin
 - Required server-side auth adapter
 - Required rate-limit adapter
 - Plane issue sink adapter
-- Optional type-based Slack and email notifications before issue creation
+- Optional type-based Slack and email notifications after issue creation, so alerts can include ticket links
 - Minimal optional CSS hooks, no design-system dependency
 - Tests for auth, validation, rate limit, escaping, and provider failures
 
@@ -65,7 +65,7 @@ The example above intentionally denies all users until you connect real auth.
 
 ## Notifications
 
-Notifications are explicit server-side adapters. They run before the issue sink and can be routed by feedback type.
+Notifications are explicit server-side adapters. They run after the issue sink and can be routed by feedback type. If the issue sink returns a `url`, Slack includes a ticket button in the alert.
 
 ```ts
 import { createEmailNotifier, createSlackWebhookNotifierFromEnv } from '@/server/feedback'
@@ -87,7 +87,7 @@ const notifications = [
 ].filter(Boolean)
 ```
 
-By default, notification failures are logged and the issue is still created. Set `required: true` on a notification rule if that notification must succeed before an issue is created.
+By default, notification failures are logged and the issue remains created. Set `required: true` on a notification rule if the API response should fail when that notification fails after issue creation.
 
 Slack notifications are sent from the runtime server. Locally that means your dev server. In production that means your deployed server, for example Railway. Do not send feedback notifications from GitHub Actions.
 
@@ -121,7 +121,7 @@ The dev server binds to `127.0.0.1` by default and refuses feedback unless `DEV_
 
 On Railway, set `FEEDBACK_SLACK_WEBHOOK_URL` as a service variable. Do not prefix it with `NEXT_PUBLIC_`.
 
-When the app is deployed, the feedback API route sends Slack from the Railway runtime before the issue sink runs. If your project also creates Plane/GitHub/Linear tickets, configure that issue sink in the same server route.
+When the app is deployed, the feedback API route creates the ticket first and then sends Slack from the Railway runtime with the ticket link. If your project uses Plane/GitHub/Linear tickets, configure that issue sink in the same server route.
 
 ## Styling
 
