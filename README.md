@@ -121,6 +121,12 @@ The included in-memory rate limiter is fine for local development and small sing
 2. In GitHub: Settings -> General -> Template repository.
 3. Keep the repository private unless you have reviewed all docs and examples for internal names.
 
+## Repository Slack Notifications
+
+This template includes a GitHub Actions workflow that can notify Slack when issues or pull requests are opened or reopened.
+
+Add a repository secret named `SLACK_WEBHOOK_URL` with your Slack incoming webhook URL. The workflow skips notification when the secret is missing, and the URL is never committed or printed.
+
 ## Verification
 
 ```bash
