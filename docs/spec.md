@@ -17,7 +17,7 @@ Create a standalone template repository with a small React feedback button/dialo
 5. As an operator, I want feedback to include page context, so that the issue is actionable.
 6. As a security reviewer, I want unauthenticated requests to fail closed, so that internal surfaces do not become public write endpoints.
 7. As a security reviewer, I want rate limiting, so that the endpoint cannot be trivially spammed.
-8. As a maintainer, I want a Plane adapter, so that the Premiere workflow can be reused without copying secrets or IDs into client code.
+8. As a maintainer, I want a Plane adapter, so that the feedback workflow can be reused without copying secrets or IDs into client code.
 9. As an operator, I want bug reports to trigger Slack and email alerts before issue creation, so that urgent breakages are seen quickly.
 10. As a maintainer, I want notification routing by feedback type, so that improvement suggestions can use quieter notification rules than bugs.
 

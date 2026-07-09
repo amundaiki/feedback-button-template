@@ -2,7 +2,7 @@
 
 Unstyled, reusable feedback button for authenticated admin/customer surfaces.
 
-The template copies the shape from `premiere-admin`, but removes project-specific UI and auth. Projects own the styling and wire their own authentication.
+Projects own the styling, authentication, notifications, and issue-tracker wiring.
 
 ## What You Get
 
