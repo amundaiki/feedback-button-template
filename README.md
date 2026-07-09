@@ -89,6 +89,40 @@ const notifications = [
 
 By default, notification failures are logged and the issue is still created. Set `required: true` on a notification rule if that notification must succeed before an issue is created.
 
+Slack notifications are sent from the runtime server. Locally that means your dev server. In production that means your deployed server, for example Railway. Do not send feedback notifications from GitHub Actions.
+
+## Local Runtime Test
+
+Run the included local server with server-only environment variables:
+
+```bash
+DEV_FEEDBACK_TOKEN="replace-with-random-local-token" \
+FEEDBACK_SLACK_WEBHOOK_URL="<server-only-slack-webhook-url>" \
+npm run dev:server
+```
+
+Then submit a test feedback request:
+
+```bash
+curl -i http://127.0.0.1:8787/api/feedback \
+  -H "Authorization: Bearer replace-with-random-local-token" \
+  -H "Content-Type: application/json" \
+  --data '{
+    "type": "bug",
+    "title": "Test fra lokal dev-server",
+    "description": "Dette er en runtime-test av Slack-varsel.",
+    "page": "/admin/test"
+  }'
+```
+
+The dev server binds to `127.0.0.1` by default and refuses feedback unless `DEV_FEEDBACK_TOKEN` matches the bearer token.
+
+## Railway Production
+
+On Railway, set `FEEDBACK_SLACK_WEBHOOK_URL` as a service variable. Do not prefix it with `NEXT_PUBLIC_`.
+
+When the app is deployed, the feedback API route sends Slack from the Railway runtime before the issue sink runs. If your project also creates Plane/GitHub/Linear tickets, configure that issue sink in the same server route.
+
 ## Styling
 
 The components are intentionally almost unstyled. They expose `data-feedback-*` attributes and className props so each project can own the look.
@@ -120,14 +154,6 @@ The included in-memory rate limiter is fine for local development and small sing
 1. Push this folder to a private GitHub repository.
 2. In GitHub: Settings -> General -> Template repository.
 3. Keep the repository private unless you have reviewed all docs and examples for internal names.
-
-## Repository Slack Notifications
-
-This template includes a GitHub Actions workflow that can notify Slack when issues or pull requests are opened or reopened.
-
-For a fixed target channel, add repository secrets named `SLACK_BOT_TOKEN` and `SLACK_CHANNEL_ID`. The bot token needs Slack `chat:write` permission and access to the target channel.
-
-As a simpler fallback, add `SLACK_WEBHOOK_URL` with your Slack incoming webhook URL. Incoming webhooks usually post to the channel configured on the webhook itself. Secrets are never committed or printed.
 
 ## Verification
 

@@ -5,6 +5,7 @@
   "type": "module",
   "description": "Reusable unstyled feedback button and Next-compatible feedback API template.",
   "scripts": {
+    "dev:server": "tsx src/examples/dev-server/server.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "verify": "npm run typecheck && npm test"
@@ -16,6 +17,7 @@
     "@types/node": "^22.10.2",
     "@types/react": "^19.0.2",
     "react": "^19.0.0",
+    "tsx": "^4.23.0",
     "typescript": "^5.7.2",
     "vitest": "^4.1.10"
   }

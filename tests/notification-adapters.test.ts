@@ -49,11 +49,18 @@ describe('Slack notifier', () => {
     const firstCall = fetchMock.mock.calls[0]
     expect(firstCall).toBeDefined()
     const init = firstCall![1] as RequestInit
-    const body = JSON.parse(String(init.body)) as { text: string }
+    const body = JSON.parse(String(init.body)) as {
+      text: string
+      blocks: Array<{ type: string; text?: { text: string }; elements?: Array<{ text?: string }> }>
+    }
     expect(body.text).toContain(issue.title)
     expect(issue.context.pageUrl).toBeDefined()
     expect(body.text).toContain(issue.context.pageUrl!)
     expect(body.text).not.toContain('example.test/slack-webhook')
+    expect(body.blocks.map((block) => block.type)).toEqual(['header', 'section', 'context', 'actions'])
+    expect(body.blocks[0]?.text?.text).toContain('Ny feil')
+    expect(JSON.stringify(body.blocks)).toContain(issue.title)
+    expect(JSON.stringify(body.blocks)).not.toContain('example.test/slack-webhook')
   })
 })
 
