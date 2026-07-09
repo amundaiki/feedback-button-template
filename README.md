@@ -125,7 +125,9 @@ The included in-memory rate limiter is fine for local development and small sing
 
 This template includes a GitHub Actions workflow that can notify Slack when issues or pull requests are opened or reopened.
 
-Add a repository secret named `SLACK_WEBHOOK_URL` with your Slack incoming webhook URL. The workflow skips notification when the secret is missing, and the URL is never committed or printed.
+For a fixed target channel, add repository secrets named `SLACK_BOT_TOKEN` and `SLACK_CHANNEL_ID`. The bot token needs Slack `chat:write` permission and access to the target channel.
+
+As a simpler fallback, add `SLACK_WEBHOOK_URL` with your Slack incoming webhook URL. Incoming webhooks usually post to the channel configured on the webhook itself. Secrets are never committed or printed.
 
 ## Verification
 

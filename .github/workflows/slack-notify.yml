@@ -18,14 +18,16 @@ jobs:
     runs-on: ubuntu-latest
     env:
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+      SLACK_CHANNEL_ID: ${{ secrets.SLACK_CHANNEL_ID }}
 
     steps:
-      - name: Skip when Slack webhook is not configured
-        if: env.SLACK_WEBHOOK_URL == ''
-        run: echo "SLACK_WEBHOOK_URL is not configured; skipping Slack notification."
+      - name: Skip when Slack is not configured
+        if: env.SLACK_WEBHOOK_URL == '' && (env.SLACK_BOT_TOKEN == '' || env.SLACK_CHANNEL_ID == '')
+        run: echo "Slack is not configured; set SLACK_BOT_TOKEN + SLACK_CHANNEL_ID or SLACK_WEBHOOK_URL."
 
       - name: Send Slack notification
-        if: env.SLACK_WEBHOOK_URL != ''
+        if: env.SLACK_WEBHOOK_URL != '' || (env.SLACK_BOT_TOKEN != '' && env.SLACK_CHANNEL_ID != '')
         env:
           EVENT_NAME: ${{ github.event_name }}
           EVENT_PATH: ${{ github.event_path }}
@@ -64,9 +66,33 @@ jobs:
           esac
 
           text="[$REPOSITORY] $kind $action: <$url|$title> by $ACTOR"
-          jq -n --arg text "$text" '{text: $text}' > slack-payload.json
-          curl --fail --show-error --silent \
-            --request POST \
-            --header 'Content-Type: application/json' \
-            --data @slack-payload.json \
-            "$SLACK_WEBHOOK_URL" >/dev/null
+
+          if [ -n "${SLACK_BOT_TOKEN:-}" ] && [ -n "${SLACK_CHANNEL_ID:-}" ]; then
+            jq -n \
+              --arg channel "$SLACK_CHANNEL_ID" \
+              --arg text "$text" \
+              '{channel: $channel, text: $text, unfurl_links: false, unfurl_media: false}' \
+              > slack-payload.json
+            curl --fail --show-error --silent \
+              --request POST \
+              --header "Authorization: Bearer $SLACK_BOT_TOKEN" \
+              --header 'Content-Type: application/json; charset=utf-8' \
+              --data @slack-payload.json \
+              https://slack.com/api/chat.postMessage \
+              > slack-response.json
+            if [ "$(jq -r '.ok' slack-response.json)" != "true" ]; then
+              jq -r '.error // "unknown_slack_error"' slack-response.json >&2
+              exit 1
+            fi
+          else
+            if [ -n "${SLACK_CHANNEL_ID:-}" ]; then
+              jq -n --arg channel "$SLACK_CHANNEL_ID" --arg text "$text" '{channel: $channel, text: $text}' > slack-payload.json
+            else
+              jq -n --arg text "$text" '{text: $text}' > slack-payload.json
+            fi
+            curl --fail --show-error --silent \
+              --request POST \
+              --header 'Content-Type: application/json' \
+              --data @slack-payload.json \
+              "$SLACK_WEBHOOK_URL" >/dev/null
+          fi
