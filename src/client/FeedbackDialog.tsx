@@ -54,6 +54,7 @@ export type FeedbackDialogProps = {
   texts?: Partial<FeedbackDialogTexts>
   classes?: FeedbackDialogClasses
   getPage?: () => string | undefined
+  getImageUrl?: () => string | undefined
   includeUserAgent?: boolean
   onSent?: () => void
 }
@@ -94,6 +95,7 @@ export function FeedbackDialog({
   texts,
   classes,
   getPage = defaultGetPage,
+  getImageUrl,
   includeUserAgent = false,
   onSent,
 }: FeedbackDialogProps) {
@@ -128,7 +130,9 @@ export function FeedbackDialog({
 
     const payload: FeedbackSubmitPayload = { type, title, description }
     const page = getPage()
+    const imageUrl = getImageUrl?.()
     if (page) payload.page = page
+    if (imageUrl) payload.imageUrl = imageUrl
     if (includeUserAgent && typeof navigator !== 'undefined') {
       payload.userAgent = navigator.userAgent
     }

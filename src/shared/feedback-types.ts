@@ -12,5 +12,6 @@ export type FeedbackSubmitPayload = {
   title: string
   description: string
   page?: string
+  imageUrl?: string
   userAgent?: string
 }

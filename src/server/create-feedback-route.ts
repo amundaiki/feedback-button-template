@@ -68,6 +68,42 @@ function readOptionalString(
   return trimmed.slice(0, maxLength)
 }
 
+function isPrivateHostname(hostname: string): boolean {
+  const normalized = hostname.toLowerCase()
+  if (normalized === 'localhost' || normalized.endsWith('.local')) return true
+  if (normalized === '::1' || normalized === '[::1]') return true
+
+  const parts = normalized.split('.').map((part) => Number(part))
+  if (parts.length !== 4 || parts.some((part) => !Number.isInteger(part) || part < 0 || part > 255)) {
+    return false
+  }
+
+  const first = parts[0] ?? -1
+  const second = parts[1] ?? -1
+  if (first === 10 || first === 127) return true
+  if (first === 172 && second >= 16 && second <= 31) return true
+  if (first === 192 && second === 168) return true
+  if (first === 169 && second === 254) return true
+  return false
+}
+
+function readOptionalHttpsUrl(
+  record: Record<string, unknown>,
+  key: string,
+  maxLength: number,
+): string | undefined {
+  const value = readOptionalString(record, key, maxLength)
+  if (!value) return undefined
+
+  try {
+    const url = new URL(value)
+    if (url.protocol !== 'https:' || isPrivateHostname(url.hostname)) return undefined
+    return url.toString()
+  } catch {
+    return undefined
+  }
+}
+
 type ValidationResult =
   | { ok: true; value: FeedbackSubmitPayload }
   | { ok: false; message: string }
@@ -94,6 +130,11 @@ function validatePayload(input: unknown): ValidationResult {
     return { ok: false, message: 'Ugyldig sidekontekst.' }
   }
 
+  const imageUrl = readOptionalHttpsUrl(record, 'imageUrl', 2000)
+  if (record.imageUrl !== undefined && imageUrl === undefined) {
+    return { ok: false, message: 'Ugyldig bilde-URL.' }
+  }
+
   const userAgent = readOptionalString(record, 'userAgent', 400)
   const value: FeedbackSubmitPayload = {
     type: rawType as FeedbackType,
@@ -101,6 +142,7 @@ function validatePayload(input: unknown): ValidationResult {
     description,
   }
   if (page !== undefined) value.page = page
+  if (imageUrl !== undefined) value.imageUrl = imageUrl
   if (userAgent !== undefined) value.userAgent = userAgent
 
   return { ok: true, value }
@@ -132,6 +174,9 @@ function buildIssue(
     context.page = payload.page
     context.pageUrl = absolutePageUrl(request, payload.page)
   }
+  if (payload.imageUrl !== undefined) {
+    context.imageUrl = payload.imageUrl
+  }
   if (options.includeUserAgent && payload.userAgent !== undefined) {
     context.userAgent = payload.userAgent
   }
@@ -142,6 +187,7 @@ function buildIssue(
     context.page && context.pageUrl
       ? `Side: <a href="${escapeHtml(context.pageUrl)}">${escapeHtml(context.page)}</a>`
       : null,
+    context.imageUrl ? `Bilde: <a href="${escapeHtml(context.imageUrl)}">Vedlagt bilde</a>` : null,
     user.email ? `Rapportert av: ${escapeHtml(user.email)}` : null,
     context.userAgent ? `Nettleser: ${escapeHtml(context.userAgent)}` : null,
   ].filter((line): line is string => line !== null)

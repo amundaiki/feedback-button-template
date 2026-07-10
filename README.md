@@ -91,6 +91,8 @@ By default, notification failures are logged and the issue remains created. Set 
 
 Slack notifications are sent from the runtime server. Locally that means your dev server. In production that means your deployed server, for example Railway. Do not send feedback notifications from GitHub Actions.
 
+For bug reports, Slack shows `⚠️ BUG`, what the user wrote, ticket/page links, and a preview image when the payload includes `imageUrl`. `imageUrl` must be an already uploaded HTTPS URL. File upload, screenshot capture, storage, and access control should be implemented by the host project.
+
 ## Local Runtime Test
 
 Run the included local server with server-only environment variables:

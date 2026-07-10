@@ -1,4 +1,4 @@
-import { FEEDBACK_TYPE_LABELS, type FeedbackType } from '../../shared/feedback-types'
+import type { FeedbackType } from '../../shared/feedback-types'
 import type { FeedbackIssue, FeedbackNotificationRule } from '../types'
 import { FeedbackSinkError } from '../types'
 
@@ -18,6 +18,12 @@ type SlackBlock =
       elements: Array<{ type: 'mrkdwn'; text: string }>
     }
   | {
+      type: 'image'
+      image_url: string
+      alt_text: string
+      title?: { type: 'plain_text'; text: string; emoji?: boolean }
+    }
+  | {
       type: 'actions'
       elements: Array<{
         type: 'button'
@@ -33,6 +39,10 @@ export type SlackWebhookNotifierOptions = {
   required?: boolean
 }
 
+function slackTitle(issue: FeedbackIssue): string {
+  return issue.type === 'bug' ? '⚠️ BUG' : 'FORBEDRING'
+}
+
 export type SlackWebhookNotifierFromEnvOptions = Omit<SlackWebhookNotifierOptions, 'webhookUrl'> & {
   env?: Env
   envKey?: string
@@ -40,9 +50,12 @@ export type SlackWebhookNotifierFromEnvOptions = Omit<SlackWebhookNotifierOption
 
 function slackText(issue: FeedbackIssue): string {
   const lines = [
-    `Ny ${FEEDBACK_TYPE_LABELS[issue.type].toLowerCase()} i ${issue.context.appName}: ${issue.title}`,
+    `${slackTitle(issue)} i ${issue.context.appName}`,
+    `Hva de skrev: ${issue.title}`,
+    issue.descriptionText,
     issue.ticket?.url ? `Ticket: ${issue.ticket.url}` : null,
-    issue.context.pageUrl ? `Side: ${issue.context.pageUrl}` : null,
+    issue.context.pageUrl ? `Lenke: ${issue.context.pageUrl}` : null,
+    issue.context.imageUrl ? `Bilde: ${issue.context.imageUrl}` : null,
     issue.reporter.email ? `Rapportert av: ${issue.reporter.email}` : null,
   ].filter((line): line is string => line !== null)
 
@@ -64,7 +77,7 @@ function slackBlocks(issue: FeedbackIssue): SlackBlock[] {
       type: 'header',
       text: {
         type: 'plain_text',
-        text: truncate(`Ny ${FEEDBACK_TYPE_LABELS[issue.type].toLowerCase()}`, 150),
+        text: truncate(slackTitle(issue), 150),
         emoji: false,
       },
     },
@@ -72,7 +85,7 @@ function slackBlocks(issue: FeedbackIssue): SlackBlock[] {
       type: 'section',
       text: {
         type: 'mrkdwn',
-        text: `*${escapeSlackMrkdwn(issue.title)}*\n${escapeSlackMrkdwn(
+        text: `*Hva de skrev*\n*${escapeSlackMrkdwn(issue.title)}*\n${escapeSlackMrkdwn(
           truncate(issue.descriptionText, 700),
         )}`,
       },
@@ -82,7 +95,8 @@ function slackBlocks(issue: FeedbackIssue): SlackBlock[] {
   const context = [
     `App: ${issue.context.appName}`,
     issue.ticket?.provider ? `Ticket: ${issue.ticket.provider}` : null,
-    issue.context.page ? `Side: ${issue.context.page}` : null,
+    issue.context.page ? `Lenke: ${issue.context.page}` : null,
+    issue.context.imageUrl ? 'Bilde: vedlagt' : null,
     issue.reporter.email ? `Rapportert av: ${issue.reporter.email}` : null,
   ]
     .filter((line): line is string => line !== null)
@@ -90,6 +104,15 @@ function slackBlocks(issue: FeedbackIssue): SlackBlock[] {
 
   if (context.length > 0) {
     blocks.push({ type: 'context', elements: context })
+  }
+
+  if (issue.context.imageUrl) {
+    blocks.push({
+      type: 'image',
+      image_url: issue.context.imageUrl,
+      alt_text: 'Vedlagt bilde fra tilbakemelding',
+      title: { type: 'plain_text', text: 'Vedlagt bilde', emoji: false },
+    })
   }
 
   const actionElements: Array<{
@@ -111,6 +134,14 @@ function slackBlocks(issue: FeedbackIssue): SlackBlock[] {
       type: 'button',
       text: { type: 'plain_text', text: 'Åpne side', emoji: false },
       url: issue.context.pageUrl,
+    })
+  }
+
+  if (issue.context.imageUrl) {
+    actionElements.push({
+      type: 'button',
+      text: { type: 'plain_text', text: 'Åpne bilde', emoji: false },
+      url: issue.context.imageUrl,
     })
   }
 

@@ -18,6 +18,7 @@ const issue: FeedbackIssue = {
     appName: 'test-admin',
     page: '/admin/lager',
     pageUrl: 'https://admin.example.com/admin/lager',
+    imageUrl: 'https://cdn.example.com/feedback/screenshot.png',
   },
   ticket: {
     id: 'issue-1',
@@ -56,19 +57,37 @@ describe('Slack notifier', () => {
     const init = firstCall![1] as RequestInit
     const body = JSON.parse(String(init.body)) as {
       text: string
-      blocks: Array<{ type: string; text?: { text: string }; elements?: Array<{ text?: string }> }>
+      blocks: Array<{
+        type: string
+        text?: { text: string }
+        image_url?: string
+        elements?: Array<{ text?: { text?: string } | string; url?: string }>
+      }>
     }
     expect(body.text).toContain(issue.title)
+    expect(body.text).toContain(issue.descriptionText)
     expect(issue.ticket?.url).toBeDefined()
     expect(body.text).toContain(issue.ticket!.url!)
     expect(issue.context.pageUrl).toBeDefined()
     expect(body.text).toContain(issue.context.pageUrl!)
+    expect(issue.context.imageUrl).toBeDefined()
+    expect(body.text).toContain(issue.context.imageUrl!)
     expect(body.text).not.toContain('example.test/slack-webhook')
-    expect(body.blocks.map((block) => block.type)).toEqual(['header', 'section', 'context', 'actions'])
-    expect(body.blocks[0]?.text?.text).toContain('Ny feil')
+    expect(body.blocks.map((block) => block.type)).toEqual([
+      'header',
+      'section',
+      'context',
+      'image',
+      'actions',
+    ])
+    expect(body.blocks[0]?.text?.text).toBe('⚠️ BUG')
+    expect(body.blocks.find((block) => block.type === 'image')?.image_url).toBe(issue.context.imageUrl)
     expect(JSON.stringify(body.blocks)).toContain(issue.title)
+    expect(JSON.stringify(body.blocks)).toContain(issue.descriptionText)
     expect(JSON.stringify(body.blocks)).toContain('Åpne ticket')
     expect(JSON.stringify(body.blocks)).toContain(issue.ticket!.url!)
+    expect(JSON.stringify(body.blocks)).toContain('Åpne bilde')
+    expect(JSON.stringify(body.blocks)).toContain(issue.context.imageUrl!)
     expect(JSON.stringify(body.blocks)).not.toContain('example.test/slack-webhook')
   })
 })

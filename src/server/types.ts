@@ -10,6 +10,7 @@ export type FeedbackContext = {
   appName: string
   page?: string
   pageUrl?: string
+  imageUrl?: string
   userAgent?: string
 }
 

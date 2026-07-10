@@ -85,6 +85,35 @@ describe('createFeedbackPost', () => {
     expect(issue.reporter.email).toBe('tester@example.com')
   })
 
+  it('tar med trygg bilde-url i issue-kontekst', async () => {
+    const { handler, issueSink } = route()
+    const response = await handler(
+      request({
+        ...validBody,
+        imageUrl: 'https://cdn.example.com/feedback/screenshot.png',
+      }),
+    )
+
+    expect(response.status).toBe(201)
+    const issue = issueSink.mock.calls[0]?.[0]
+    expect(issue?.context.imageUrl).toBe('https://cdn.example.com/feedback/screenshot.png')
+    expect(issue?.descriptionHtml).toContain('Vedlagt bilde')
+  })
+
+  it('avviser utrygg bilde-url', async () => {
+    const { handler, issueSink } = route()
+    const response = await handler(
+      request({
+        ...validBody,
+        imageUrl: 'http://localhost:3000/screenshot.png',
+      }),
+    )
+
+    expect(response.status).toBe(400)
+    await expect(response.json()).resolves.toMatchObject({ feil: 'Ugyldig bilde-URL.' })
+    expect(issueSink).not.toHaveBeenCalled()
+  })
+
   it('rate-limiter samme bruker', async () => {
     const { handler } = route({
       rateLimit: createInMemoryRateLimit({ limit: 1, windowMs: 60_000 }),
